@@ -23,6 +23,7 @@ All operators, utilities and helpers respect Combine's publisher contract, inclu
 * [withLatestFrom](#withLatestFrom)
 * [flatMapLatest](#flatMapLatest)
 * [assign](#assign)
+* [amb](#amb)
 * [materialize](#materialize)
 * [values](#values)
 * [failures](#failures)
@@ -136,6 +137,38 @@ var text: UITextField
 ```
 
 ------
+
+### amb
+
+Amb takes multiple publishers and mirrors the first one to emit an event. You can think of it as a race of publishers, where the first one to emit passes its events, while the others are ignored.
+
+```swift
+let subject1 = PassthroughSubject<Int, Never>()
+let subject2 = PassthroughSubject<Int, Never>()
+
+subject1
+  .amb(subject2)
+  .sink(receiveCompletion: { print("amb: completed with \($0)") },
+        receiveValue: { print("amb: \($0)") })
+
+subject2.send(3) // Since this subject emit first, it becomes the active publisherr
+subject1.send(1)
+subject2.send(6)
+subject1.send(8)
+subject1.send(7)
+
+subject1.send(completion: .finished)
+// Only when subject2 finishes, amb itself finishes as well, since it's the active publisher
+subject2.send(completion: .finished)
+```
+
+#### Output:
+
+```none
+amb: 3
+amb: 6
+amb: completed with .finished
+```
 
 ### materialize
 
